@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한자 및 어휘 완전 정복 퀴즈 (1-48)</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .quiz-container { background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 95%; max-width: 550px; text-align: center; }
+        .progress-bar-container { height: 10px; background: #eee; border-radius: 5px; margin-bottom: 25px; overflow: hidden; }
+        .progress-bar { height: 100%; background: #28a745; width: 0%; transition: width 0.3s; }
+        .guide-text { color: #666; font-size: 0.95rem; margin-bottom: 15px; }
+        .display-word { font-size: 3.2rem; font-weight: bold; color: #333; margin-bottom: 25px; min-height: 1.2em; }
+        input[type="text"] { width: 85%; padding: 15px; font-size: 1.4rem; border: 3px solid #ddd; border-radius: 12px; text-align: center; outline: none; transition: border-color 0.3s; }
+        input[type="text"]:focus { border-color: #28a745; }
+        .feedback { margin-top: 20px; font-weight: bold; font-size: 1.2rem; height: 1.5em; }
+        #counter { margin-top: 15px; color: #999; font-size: 0.9rem; }
+        .success-flash { animation: flash 0.5s; }
+        @keyframes flash { 0% { color: #333; } 50% { color: #28a745; transform: scale(1.1); } 100% { color: #333; } }
+    </style>
+</head>
+<body>
+    <div class="quiz-container" id="main-container">
+        <div class="progress-bar-container"><div id="progress" class="progress-bar"></div></div>
+        <div class="guide-text" id="guide">한자의 뜻과 음을 입력하세요 (예: 물을 문)</div>
+        <div class="display-word" id="word-box">가로딩 중...</div>
+        <input type="text" id="input-box" placeholder="정답 입력" autocomplete="off">
+        <div id="feedback" class="feedback"></div>
+        <div id="counter">1 / 48</div>
+    </div>
+
+    <script>
+        // 소스 1.pdf의 1~48번 데이터를 순서대로 배열화 [1]
+        const quizData = [
+            // 1~10: 기초 한자 (뜻과 음)
+            { q: "問", a: "물을 문", g: "한자의 뜻과 음을 입력하세요 (예: 물을 문)" },
+            { q: "答", a: "답할 답", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "自", a: "스스로 자", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "他", a: "다를 타", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "言", a: "말씀 언", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "語", a: "말씀 어", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "事", a: "일 사", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "物", a: "물건 물", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "平", a: "평평할 평", g: "한자의 뜻과 음을 입력하세요" },
+            { q: "和", a: "화할 화", g: "한자의 뜻과 음을 입력하세요" },
+            // 11~48: 활용 어휘 (읽기)
+            { q: "問의", a: "문의", g: "단어의 읽기를 한글로 입력하세요" },
+            { q: "배他적", a: "배타적", g: "단어의 읽기를 입력하세요" },
+            { q: "경事", a: "경사", g: "단어의 읽기를 입력하세요" },
+            { q: "言급", a: "언급", g: "단어의 읽기를 입력하세요" },
+            { q: "物가", a: "물가", g: "단어의 읽기를 입력하세요" },
+            { q: "괴物", a: "괴물", g: "단어의 읽기를 입력하세요" },
+            { q: "선言", a: "선언", g: "단어의 읽기를 입력하세요" },
+            { q: "平탄", a: "평탄", g: "단어의 읽기를 입력하세요" },
+            { q: "語원", a: "어원", g: "단어의 읽기를 입력하세요" },
+            { q: "온和", a: "온화", g: "단어의 읽기를 입력하세요" },
+            { q: "自발적", a: "자발적", g: "단어의 읽기를 입력하세요" },
+            { q: "語색", a: "어색", g: "단어의 읽기를 입력하세요" },
+            { q: "他국", a: "타국", g: "단어의 읽기를 입력하세요" },
+            { q: "平면", a: "평면", g: "단어의 읽기를 입력하세요" },
+            { q: "심問", a: "심문", g: "단어의 읽기를 입력하세요" },
+            { q: "他향살이", a: "타향살이", g: "단어의 읽기를 입력하세요" },
+            { q: "答변", a: "답변", g: "단어의 읽기를 입력하세요" },
+            { q: "言론사", a: "언론사", g: "단어의 읽기를 입력하세요" },
+            { q: "친和력", a: "친화력", g: "단어의 읽기를 입력하세요" },
+            { q: "단語", a: "단어", g: "단어의 읽기를 입력하세요" },
+            { q: "平행선", a: "평행선", g: "단어의 읽기를 입력하세요" },
+            { q: "용語", a: "용어", g: "단어의 읽기를 입력하세요" },
+            { q: "自율", a: "자율", g: "단어의 읽기를 입력하세요" },
+            { q: "和해", a: "화해", g: "단어의 읽기를 입력하세요" },
+            { q: "事례", a: "사례", g: "단어의 읽기를 입력하세요" },
+            { q: "問제지", a: "문제지", g: "단어의 읽기를 입력하세요" },
+            { q: "실物", a: "실물", g: "단어의 읽기를 입력하세요" },
+            { q: "自국", a: "자국", g: "단어의 읽기를 입력하세요" },
+            { q: "答안지", a: "답안지", g: "단어의 읽기를 입력하세요" },
+            { q: "박物관", a: "박물관", g: "단어의 읽기를 입력하세요" },
+            { q: "平등", a: "평등", g: "단어의 읽기를 입력하세요" },
+            { q: "발言권", a: "발언권", g: "단어의 읽기를 입력하세요" },
+            { q: "응答", a: "응답", g: "단어의 읽기를 입력하세요" },
+            { q: "他율", a: "타율", g: "단어의 읽기를 입력하세요" },
+            { q: "自급自족", a: "자급자족", g: "단어의 읽기를 입력하세요" },
+            { q: "和목", a: "화목", g: "단어의 읽기를 입력하세요" },
+            { q: "대答", a: "대답", g: "단어의 읽기를 입력하세요" },
+            { q: "설問지", a: "설문지", g: "단어의 읽기를 입력하세요" }
+        ];
+
+        let currentIndex = 0;
+        const wordBox = document.getElementById('word-box');
+        const inputBox = document.getElementById('input-box');
+        const guideText = document.getElementById('guide');
+        const feedback = document.getElementById('feedback');
+        const progressBar = document.getElementById('progress');
+        const counter = document.getElementById('counter');
+
+        function loadQuestion() {
+            if (currentIndex >= quizData.length) {
+                finishQuiz();
+                return;
+            }
+            const current = quizData[currentIndex];
+            wordBox.innerText = current.q;
+            guideText.innerText = current.g;
+            inputBox.value = '';
+            inputBox.focus();
+            feedback.innerText = '';
+            
+            // 상태 업데이트
+            progressBar.style.width = `${(currentIndex / quizData.length) * 100}%`;
+            counter.innerText = `${currentIndex + 1} / ${quizData.length}`;
+        }
+
+        inputBox.addEventListener('input', (e) => {
+            const userVal = e.target.value.trim().replace(/\s{2,}/g, ' '); // 중복 공백 제거
+            const correctVal = quizData[currentIndex].a;
+
+            if (userVal === correctVal) {
+                feedback.innerHTML = '<span style="color:#28a745;">정답입니다! ✨</span>';
+                wordBox.classList.add('success-flash');
+                
+                setTimeout(() => {
+                    wordBox.classList.remove('success-flash');
+                    currentIndex++;
+                    loadQuestion();
+                }, 400);
+            }
+        });
+
+        function finishQuiz() {
+            progressBar.style.width = '100%';
+            document.getElementById('main-container').innerHTML = `
+                <h1 style="color:#28a745">축하합니다! 🎉</h1>
+                <p style="font-size:1.1rem">1번부터 48번까지 모든 문제를 완료했습니다.</p>
+                <button onclick="location.reload()" style="padding:12px 25px; border-radius:10px; border:none; background:#28a745; color:white; cursor:pointer; font-size:1rem; margin-top:10px;">다시 도전하기</button>
+            `;
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>
